@@ -4,6 +4,8 @@ Planificador de rutas en camper con IA. Indicas zona, días, ritmo y tipo de pla
 
 **Demo:** https://ruta-van.vercel.app
 
+![Pantalla principal de RutaVan: formulario para planificar una ruta en camper](docs/screenshot.png)
+
 ## Funcionalidades
 
 - Itinerario generado por IA (Claude) con aviso sobre la normativa de pernocta.
