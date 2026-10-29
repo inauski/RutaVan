@@ -9,6 +9,7 @@ Planificador de rutas en camper con IA. Indicas zona, días, ritmo y tipo de pla
 - Itinerario generado por IA (Claude) con aviso sobre la normativa de pernocta.
 - Cuentas de usuario y rutas guardadas.
 - 1 ruta gratis; después, pack de 5 rutas por 4,99 € (pago único con Stripe).
+- Correo de agradecimiento tras la compra, enviado con Resend.
 - Modo simulado de IA para probar sin coste.
 
 ## Tecnologías
