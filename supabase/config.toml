@@ -1,0 +1,11 @@
+project_id = "cfaxhqpduyghhgyukcnd"
+
+[functions.generate-route]
+verify_jwt = true
+
+[functions.create-checkout]
+verify_jwt = true
+
+# Stripe no envía JWT de Supabase; se verifica la firma dentro de la función
+[functions.stripe-webhook]
+verify_jwt = false
