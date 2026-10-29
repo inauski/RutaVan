@@ -1,42 +1,42 @@
 # RutaVan
 
-Planificador de rutas en camper con IA. 1 ruta gratis y un pack de 5 rutas por 4,99 € (pago único con Stripe).
+Planificador de rutas en camper con IA. Indicas zona, días, ritmo y tipo de plan, y recibes un itinerario día a día con paradas, tiempos de conducción y zona de pernocta.
 
-**Stack:** React + Vite + TypeScript + Tailwind · Supabase (auth, BD, Edge Functions) · Claude (Anthropic) · Stripe Checkout.
+**Demo:** https://ruta-van.vercel.app
 
-## Arranque local
+## Funcionalidades
+
+- Itinerario generado por IA (Claude) con aviso sobre la normativa de pernocta.
+- Cuentas de usuario y rutas guardadas.
+- 1 ruta gratis; después, pack de 5 rutas por 4,99 € (pago único con Stripe).
+- Modo simulado de IA para probar sin coste.
+
+## Tecnologías
+
+React, Vite, TypeScript, Tailwind CSS · Supabase (auth, base de datos y Edge Functions) · Claude API · Stripe Checkout · Vercel
+
+## Instalación
 
 ```bash
 npm install
+cp .env.example .env   # rellena tus claves de Supabase
 npm run dev
 ```
 
-El `.env` ya apunta al proyecto Supabase `camper_rutavan`.
+La web queda en `http://localhost:5173`.
 
-## Ya hecho en Supabase (`camper_rutavan`)
+## Estructura
 
-- Migración `supabase/migrations/20261028000000_init.sql` aplicada (tablas `user_credits`, `routes`, `stripe_events`, RLS y funciones de créditos).
-- Edge Functions desplegadas: `generate-route`, `create-checkout`, `stripe-webhook`.
+```
+src/                  Aplicación React
+supabase/migrations/  Esquema de la base de datos
+supabase/functions/   Edge Functions: generate-route, create-checkout, stripe-webhook
+```
 
-## Pendiente: secretos (Dashboard → Edge Functions → Secrets)
+## Scripts
 
-| Secreto | Valor |
+| Comando | Descripción |
 | --- | --- |
-| `ANTHROPIC_API_KEY` | Tu clave de Anthropic |
-| `STRIPE_SECRET_KEY` | `sk_test_...` |
-| `STRIPE_PRICE_ID` | `price_...` del producto "Pack 5 rutas" (4,99 €, pago único) |
-| `STRIPE_WEBHOOK_SECRET` | `whsec_...` del endpoint de webhook (ver abajo) |
-| `ALLOWED_ORIGINS` | `http://localhost:5173,https://tu-dominio` |
-
-## Webhook de Stripe
-
-Endpoint: `https://cfaxhqpduyghhgyukcnd.supabase.co/functions/v1/stripe-webhook`, evento `checkout.session.completed`.
-
-## Probar el pago
-
-Tarjeta de test `4242 4242 4242 4242`, cualquier fecha futura y CVC.
-
-## Notas
-
-- Cada resultado muestra un aviso para comprobar la normativa de pernocta.
-- Si Supabase exige confirmar el correo, el registro pedirá confirmarlo antes de entrar.
+| `npm run dev` | Servidor de desarrollo |
+| `npm run build` | Compilación de producción |
+| `npm run preview` | Previsualizar la compilación |
