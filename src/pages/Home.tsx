@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
-import { CheckCircle2 } from "lucide-react";
+import { CheckCircle2, Loader2 } from "lucide-react";
 import { useAuth } from "../hooks/useAuth";
 import { ApiError, generateRoute } from "../lib/api";
 import {
@@ -10,7 +10,7 @@ import {
 } from "../lib/types";
 import RouteForm from "../components/RouteForm";
 import ItineraryView from "../components/ItineraryView";
-import Paywall from "../components/Paywall";
+import Paywall, { BASELINE_KEY } from "../components/Paywall";
 
 const DRAFT_KEY = "rutavan:draft";
 const DEFAULT_INPUT: RouteInput = { zona: "", dias: 3, ritmo: "tranquilo", plan: "naturaleza" };
@@ -34,16 +34,43 @@ export default function Home() {
   const resultRef = useRef<HTMLDivElement>(null);
   const paid = params.get("pago") === "ok";
 
-  // Tras volver de Stripe, el webhook puede tardar unos segundos en sumar créditos.
+  const cancelled = params.get("pago") === "cancelado";
+  const [payment, setPayment] = useState<"confirming" | "done" | "slow" | null>(null);
+
+  // Tras volver de Stripe, el webhook puede tardar unos segundos en sumar créditos:
+  // consultamos hasta que el saldo suba (o hasta ~40 s).
   useEffect(() => {
     if (!paid || !session) return;
+    let baseline = NaN;
+    try {
+      baseline = Number(sessionStorage.getItem(BASELINE_KEY));
+    } catch {
+      // sin sessionStorage
+    }
+    setPayment("confirming");
     let tries = 0;
-    const id = window.setInterval(() => {
+    let stopped = false;
+    const check = async () => {
+      const c = await refreshCredits();
+      if (stopped) return;
       tries += 1;
-      void refreshCredits();
-      if (tries >= 8) window.clearInterval(id);
-    }, 2000);
-    return () => window.clearInterval(id);
+      if (Number.isNaN(baseline) || remainingRoutes(c) > baseline) {
+        setPayment("done");
+        try {
+          sessionStorage.removeItem(BASELINE_KEY);
+        } catch {
+          // sin sessionStorage
+        }
+      } else if (tries >= 20) {
+        setPayment("slow");
+      } else {
+        window.setTimeout(() => void check(), 2000);
+      }
+    };
+    void check();
+    return () => {
+      stopped = true;
+    };
   }, [paid, session, refreshCredits]);
 
   const noCredits = !!session && credits !== null && remainingRoutes(credits) === 0;
@@ -84,13 +111,45 @@ export default function Home() {
         </p>
       </section>
 
-      {paid && (
+      {paid && payment === "confirming" && (
+        <div
+          role="status"
+          className="flex items-center gap-3 rounded-2xl border border-slate-200 bg-white p-4 text-base text-slate-800 shadow-card"
+        >
+          <Loader2 className="shrink-0 animate-spin text-emerald-700" size={22} aria-hidden />
+          Confirmando tu pago… Esto puede tardar unos segundos.
+        </div>
+      )}
+      {paid && payment === "done" && (
         <div
           role="status"
           className="flex items-center gap-3 rounded-2xl border border-emerald-200 bg-emerald-50 p-4 text-base text-emerald-900"
         >
-          <CheckCircle2 size={22} aria-hidden />
-          Pago recibido. En unos segundos verás tus 5 rutas nuevas.
+          <CheckCircle2 className="shrink-0" size={22} aria-hidden />
+          ¡Pago confirmado! Ya tienes {remainingRoutes(credits)} rutas disponibles.
+          <button
+            className="ml-auto font-semibold underline"
+            onClick={() => setParams({}, { replace: true })}
+          >
+            Cerrar
+          </button>
+        </div>
+      )}
+      {paid && payment === "slow" && (
+        <div
+          role="status"
+          className="rounded-2xl border border-amber-200 bg-amber-50 p-4 text-base text-amber-900"
+        >
+          Tu pago está tardando más de lo normal en confirmarse. No tienes que pagar de nuevo:
+          recarga la página en un minuto y verás tus rutas.
+        </div>
+      )}
+      {cancelled && (
+        <div
+          role="status"
+          className="flex items-center gap-3 rounded-2xl border border-slate-200 bg-white p-4 text-base text-slate-800"
+        >
+          Has cancelado el pago. No se ha hecho ningún cargo.
           <button
             className="ml-auto font-semibold underline"
             onClick={() => setParams({}, { replace: true })}
@@ -100,7 +159,7 @@ export default function Home() {
         </div>
       )}
 
-      {noCredits ? (
+      {paid && payment === "confirming" ? null : noCredits ? (
         <Paywall />
       ) : (
         <RouteForm
