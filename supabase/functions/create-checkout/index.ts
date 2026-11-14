@@ -1,5 +1,6 @@
 import { createClient } from "npm:@supabase/supabase-js@2";
 import { corsHeaders, json, siteOrigin } from "../_shared/http.ts";
+import { STRIPE_APP_ID } from "../_shared/stripe-app.ts";
 
 const admin = createClient(
   Deno.env.get("SUPABASE_URL")!,
@@ -21,6 +22,8 @@ Deno.serve(async (req) => {
     "line_items[0][price]": Deno.env.get("STRIPE_PRICE_ID")!,
     "line_items[0][quantity]": "1",
     client_reference_id: data.user.id,
+    // Identifica la sesión como de RutaVan: la cuenta de Stripe se comparte con otras apps.
+    "metadata[app]": STRIPE_APP_ID,
     success_url: `${origin}/?pago=ok`,
     cancel_url: `${origin}/?pago=cancelado`,
   });
