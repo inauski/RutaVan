@@ -1,5 +1,6 @@
 import { createClient } from "npm:@supabase/supabase-js@2";
 import { sendPurchaseEmail } from "./purchaseEmail.ts";
+import { STRIPE_APP_ID } from "../_shared/stripe-app.ts";
 
 const PACK_ROUTES = 5;
 const TOLERANCE_SECONDS = 300;
@@ -47,6 +48,14 @@ Deno.serve(async (req) => {
   const event = JSON.parse(payload);
   if (event.type === "checkout.session.completed") {
     const s = event.data.object;
+    // La cuenta de Stripe se comparte con otras apps y Stripe avisa de TODOS sus pagos: los ajenos se
+    // ignoran con un 200 (un error haría que Stripe los reintentara durante días).
+    if (s.metadata?.app !== STRIPE_APP_ID) {
+      console.log("stripe-webhook: evento ignorado, no es de RutaVan", event.id);
+      return new Response(JSON.stringify({ received: true, ignored: true }), {
+        headers: { "Content-Type": "application/json" },
+      });
+    }
     const userId: string | undefined = s.client_reference_id;
     if (s.payment_status === "paid" && userId) {
       const { data: added, error } = await admin.rpc("add_paid_credits", {
